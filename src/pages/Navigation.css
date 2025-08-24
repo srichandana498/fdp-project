@@ -1,0 +1,16 @@
+.navbar{
+    background-color: rgba(0, 0, 0, 0.724);
+    display: flex;
+    justify-content: space-evenly;
+    position: sticky;
+    top: 0px;
+}
+.navbar a{
+    color: white;
+    text-decoration: none;
+    padding: 15px;
+}
+.navbar a:hover{
+    background-color: aliceblue;
+    color: red;
+}
