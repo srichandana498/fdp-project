@@ -1,16 +1,24 @@
-.navbar{
-    background-color: rgba(0, 0, 0, 0.724);
-    display: flex;
-    justify-content: space-evenly;
-    position: sticky;
-    top: 0px;
+.navbar {
+  background: #333;
+  padding: 12px 20px;
 }
-.navbar a{
-    color: white;
-    text-decoration: none;
-    padding: 15px;
+
+.nav-links {
+  list-style: none;        /* remove bullets */
+  display: flex;           /* horizontal */
+  gap: 24px;
+  margin: 0;
+  padding: 0;
+  justify-content: center; /* center the links */
+  align-items: center;
 }
-.navbar a:hover{
-    background-color: aliceblue;
-    color: red;
+
+.nav-links li a {
+  color: #fff;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.nav-links li a:hover {
+  text-decoration: underline;
 }

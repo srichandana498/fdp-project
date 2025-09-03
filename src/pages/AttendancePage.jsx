@@ -1,95 +1,66 @@
-import { useEffect, useState } from 'react'
-import { db } from '../services/firebase'
-import { collection, getDocs, query, where, addDoc } from "firebase/firestore"
-import { useNavigate } from 'react-router-dom'
-import Swal from 'sweetalert2'
-export default function AttendancePage() {
-    let [classId, setClassId] = useState(null)
-    const [students, setStudents] = useState([])
-    const [attendance, setAttendance] = useState({})
-    const [date, setDate] = useState(new Date().toISOString().split("T")[0])
-    const navigate = useNavigate()
-    useEffect(() => {
-        classId = localStorage.getItem("selectedClassId")
-        setClassId(classId)
-        const fetchClassData = async () => {
-            try {
-                const classRef = collection(db, "classes")
-                const q = query(classRef, where("__name__", "==", classId))
-                const classSnapshot = await getDocs(q)
-                if (!classSnapshot.empty) {
-                    const classData = classSnapshot.docs[0].data()
-                    //console.log(classData)
-                    setStudents(classData.students)
-                }
-            }
-            catch (err) {
-                console.log("error while fetching the classes in attendance page", err)
-            }
-        }
-        fetchClassData()
-    }, [])
-    const handleSubmit = async (e) => {
-        e.preventDefault()
-        try {
-            await addDoc(collection(db, "attendance"), {
-                classId,
-                date,
-                records: students.map((student) => ({
-                    studentId: student.id,
-                    present: attendance[student.id] ?? false
-                }))
-            })
-            Swal.fire({
-                title: "Attendance",
-                text: "Marking attendance successful!",
-                icon: "success"
-            });
-            localStorage.removeItem("selectedClassId")
-            navigate("/")
-        }
-        catch (err) {
-            console.log("error while submiting attendance", err)
-        }
-    }
-    const handleToggle = (studentId) => {
-        setAttendance((prev) => ({
-            ...prev,
-            [studentId]: !prev[studentId]
-        }))
-    }
-    return (
-        <div className='container mt-3'>
-            <h2>Mark Attedance </h2>
-            <div className="row">
-                <form onSubmit={handleSubmit} className='col-12 col-md-6'>
-                    <div className='mb-2 col-12 col-md-6'>
-                        <label className='form-label'>Date</label>
-                        <input
-                            type="date"
-                            className='form-control'
-                            value={date}
-                            onChange={(e) => setDate(e.target.value)} />
-                    </div>
-                    <h4>Students</h4>
-                    {
-                        students.map((student) => (
-                            <div className='form-check' key={student.id}>
-                                <input
-                                    type="checkbox"
-                                    className='form-check-input'
-                                    id={`student-${student.id}`}
-                                    checked={attendance[student.id] ?? false}
-                                    onChange={() => handleToggle(student.id)} />
-                                <label htmlFor={`student-${student.id}`} className='form-check-label'>
-                                    {student.id} Name:-{student.name}
-                                </label>
-                            </div>
-                        ))
-                    }
-                    <button className='btn btn-primary mt-3'>Save attendance</button>
-                </form>
-            </div>
-        </div>
-    )
+// inside your AttendancePage component
+async function handleSave() {
+  // --- normalize date to YYYY-MM-DD (use your toYmd if you have one) ---
+  const ymd =
+    typeof dateVal === "string" && /^\d{4}-\d{2}-\d{2}$/.test(dateVal)
+      ? dateVal
+      : (() => {
+          const d = new Date(dateVal);
+          if (Number.isNaN(d.getTime())) return null;
+          const y = d.getFullYear();
+          const m = String(d.getMonth() + 1).padStart(2, "0");
+          const day = String(d.getDate()).padStart(2, "0");
+          return `${y}-${m}-${day}`;
+        })();
+
+  if (!ymd) {
+    await Swal.fire("Invalid date", "Pick a valid date.", "info");
+    return;
+  }
+  if (!classId) {
+    await Swal.fire("No class selected", "Please reselect your class.", "info");
+    return;
+  }
+
+  // --- build present list + payload ---
+  const present = (students || [])
+    .filter((s) => !!presentMap[String(s.id)])
+    .map((s) => ({
+      id: String(s.id ?? ""),
+      name: s.name ?? "",
+      email: s.email ?? "",
+    }));
+
+  const payload = {
+    date: ymd,
+    classId,
+    presentIds: present.map((p) => p.id).filter(Boolean), // viewer relies on this
+    present,                                              // richer objects (optional)
+    presentCount: present.length,
+    createdAt: serverTimestamp(),
+  };
+
+  // helpful debug in browser console (live + local)
+  console.log("Attendance save →", { classId, ymd, payload });
+
+  setSaving(true);
+  try {
+    // (Optional but super useful) tiny health write to confirm rules/env
+    await setDoc(doc(db, "__health", "ping"), { t: serverTimestamp() }, { merge: true });
+
+    // actual attendance write: classes/{classId}/attendance/{YYYY-MM-DD}
+    const attRef = doc(db, "classes", classId, "attendance", ymd);
+    await setDoc(attRef, payload, { merge: true });
+
+    setSaving(false);
+    await Swal.fire("Saved!", "Attendance saved successfully.", "success");
+  } catch (e) {
+    setSaving(false);
+    console.error("Save attendance failed:", e);
+    await Swal.fire(
+      "Error saving attendance",
+      `${e.code ?? "error"} — ${e.message ?? "Unknown error"}`,
+      "error"
+    );
+  }
 }

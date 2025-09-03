@@ -1,11 +1,15 @@
-import { Link } from "react-router-dom"
-import "./Navigation.css"
+import { Link } from "react-router-dom";
+import "./Navigation.css";
+
 export default function Navigation() {
   return (
-    <div className="navbar">
-      <Link to="/">Home</Link>
-      <Link to="/add-class">Add class Page</Link>
-      <Link to="/view-attendance">View Attendance</Link>
-    </div>
-  )
+    <nav className="navbar">
+      <ul className="nav-links">
+        <li><Link to="/">Home</Link></li>
+        <li><Link to="/attendance">Attendance</Link></li>
+        <li><Link to="/add-class">Add Class Page</Link></li>
+        <li><Link to="/view-attendance">View Attendance</Link></li>
+      </ul>
+    </nav>
+  );
 }
